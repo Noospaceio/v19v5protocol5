@@ -131,24 +131,20 @@ export default function NoosphereProtocol() {
         const posts = postsRes.count || 0;
         const tw = timewaveRes.data?.value || 0.22;
 
-        // rough NOO burnt estimate: sum negative balance deltas isn't stored directly,
-        // so use total_harvested as proxy or just show total balances
         const totalNoo = (balancesRes.data || []).reduce((s, r) => s + (r.balance || 0), 0);
 
         setStats({ spores, posts, nooburnt: Math.floor(totalNoo / 1000), harvests: Math.floor(posts / 9) });
         setTimewaveVal(tw);
-        // Fake-ish history seeded from real value
         setTimewaveHistory(Array.from({ length: 60 }, (_, i) => ({
           v: Math.max(0.03, tw * (0.6 + 0.5 * Math.sin(i * 0.3 + 1.2)) + 0.03 * Math.random())
         })));
         setStatsLoaded(true);
       } catch (e) {
-        setStatsLoaded(true); // show zeros gracefully
+        setStatsLoaded(true);
       }
     }
     load();
 
-    // Realtime timewave
     const ch = supabase
       .channel('protocol-tw')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'timewave', filter: 'id=eq.1' }, p => {
@@ -159,7 +155,7 @@ export default function NoosphereProtocol() {
         }
       })
       .subscribe();
-    return () => supabase.removeChannel(ch);
+    return () => { supabase.removeChannel(ch); };  // ← FIX: kein async return
   }, []);
 
   const twLabel = timewaveVal > 0.75 ? 'CRITICAL FLUX' : timewaveVal > 0.5 ? 'HIGH NOVELTY' : timewaveVal > 0.25 ? 'STEADY PULSE' : 'DORMANT';
@@ -175,13 +171,11 @@ export default function NoosphereProtocol() {
 
       <div style={{ fontFamily: "'Syne', sans-serif", background: '#030a06', color: '#d4ede2', minHeight: '100vh', overflowX: 'hidden' }}>
 
-        {/* ── Background mesh ── */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
           <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '70vw', height: '70vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,180,80,0.045) 0%, transparent 70%)', filter: 'blur(40px)' }} />
           <div style={{ position: 'absolute', bottom: '-10%', right: '-15%', width: '60vw', height: '60vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,100,200,0.03) 0%, transparent 70%)', filter: 'blur(60px)' }} />
         </div>
 
-        {/* ── HERO ── */}
         <motion.section style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 24px', y: heroY, opacity: heroOp }}>
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}>
             <Pill>🌌 The Noosphere Protocol</Pill>
@@ -200,18 +194,14 @@ export default function NoosphereProtocol() {
               Enter the Mycelium →
             </motion.a>
           </motion.div>
-
-          {/* Scroll hint */}
           <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }} style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', color: 'rgba(0,255,150,0.3)', fontSize: 22 }}>↓</motion.div>
         </motion.section>
 
-        {/* ── LIVE STATS ── */}
         <Section dark>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <Pill>Live from the Noosphere</Pill>
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: 0 }}>The mind is already growing.</h2>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 48 }}>
             {[
               { label: 'Active Spores', val: stats.spores, suffix: '' },
@@ -227,8 +217,6 @@ export default function NoosphereProtocol() {
               </div>
             ))}
           </div>
-
-          {/* Live Timewave */}
           <div style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid ${twColor}30`, borderRadius: 20, padding: '24px 28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
@@ -249,7 +237,6 @@ export default function NoosphereProtocol() {
           </div>
         </Section>
 
-        {/* ── SPORE IDENTITY ── */}
         <Section>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
             <div>
@@ -277,13 +264,11 @@ export default function NoosphereProtocol() {
           </div>
         </Section>
 
-        {/* ── RITUAL MECHANICS ── */}
         <Section dark>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <Pill>Ritual Mechanics</Pill>
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: 0 }}>Three thoughts. Nine days. One harvest.</h2>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
             {[
               { icon: '🌱', title: 'Plant', desc: '3 thoughts per day. Each is a spore in the collective psyche. Mantra Mode amplifies reward.' },
@@ -293,14 +278,8 @@ export default function NoosphereProtocol() {
               { icon: '🔗', title: 'Reply Threads', desc: 'Mycelial conversation threads up to 3 levels deep. Ideas growing from ideas.' },
               { icon: '🏆', title: 'Streaks & Badges', desc: 'From Primordial Spark to Eternal Node. The noosphere remembers consistency.' },
             ].map((m, i) => (
-              <motion.div
-                key={m.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07 }}
-                style={{ background: 'rgba(0,255,150,0.03)', border: '1px solid rgba(0,255,150,0.09)', borderRadius: 16, padding: '28px 22px' }}
-              >
+              <motion.div key={m.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}
+                style={{ background: 'rgba(0,255,150,0.03)', border: '1px solid rgba(0,255,150,0.09)', borderRadius: 16, padding: '28px 22px' }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>{m.icon}</div>
                 <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8, color: '#e8f5ee' }}>{m.title}</div>
                 <div style={{ fontSize: 14, color: 'rgba(212,237,226,0.5)', lineHeight: 1.7 }}>{m.desc}</div>
@@ -309,49 +288,21 @@ export default function NoosphereProtocol() {
           </div>
         </Section>
 
-        {/* ── GAMES ── */}
         <Section>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <Pill>The Living Games</Pill>
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: 0 }}>Play the noosphere.</h2>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
             {[
-              {
-                icon: '☯', title: 'Spore Flip', tag: 'Live',
-                color: '#00cc78',
-                desc: 'Double or burn. A single moment of pure mycelial chance. Wager your NOO, flip the spore, face the void.',
-                detail: 'Win 2× • Lose all • 2% burn on every pot'
-              },
-              {
-                icon: '⚔️', title: 'Noosphere Duels', tag: 'PvP',
-                color: '#ff9f1c',
-                desc: 'Void · Spore · Sol — a triangular battle system. Challenge other spores to real-time wager duels.',
-                detail: 'Rock-paper-scissors logic • 2% burn per match • Live matchmaking'
-              },
-              {
-                icon: '⛏', title: 'Space Mine', tag: 'Strategy',
-                color: '#00aaff',
-                desc: 'Claim an asteroid. Install extractors. Upgrade, defend, and raid other miners for passive NOO yield.',
-                detail: 'Passive income • Upgrade tree • Raid & defend mechanics'
-              },
-              {
-                icon: '🔮', title: 'Oracles', tag: 'Coming Soon',
-                color: '#cc88ff',
-                desc: 'Prediction markets are the eyes of the planetary mind. Cast NOO into YES/NO pools. Correct prophecy is rewarded.',
-                detail: 'Live odds • Collective divination • NOO rewards for correct predictions'
-              },
+              { icon: '☯', title: 'Spore Flip', tag: 'Live', color: '#00cc78', desc: 'Double or burn. A single moment of pure mycelial chance. Wager your NOO, flip the spore, face the void.', detail: 'Win 2× • Lose all • 2% burn on every pot' },
+              { icon: '⚔️', title: 'Noosphere Duels', tag: 'PvP', color: '#ff9f1c', desc: 'Void · Spore · Sol — a triangular battle system. Challenge other spores to real-time wager duels.', detail: 'Rock-paper-scissors logic • 2% burn per match • Live matchmaking' },
+              { icon: '⛏', title: 'Space Mine', tag: 'Strategy', color: '#00aaff', desc: 'Claim an asteroid. Install extractors. Upgrade, defend, and raid other miners for passive NOO yield.', detail: 'Passive income • Upgrade tree • Raid & defend mechanics' },
+              { icon: '🔮', title: 'Oracles', tag: 'Coming Soon', color: '#cc88ff', desc: 'Prediction markets are the eyes of the planetary mind. Cast NOO into YES/NO pools. Correct prophecy is rewarded.', detail: 'Live odds • Collective divination • NOO rewards for correct predictions' },
             ].map((g, i) => (
-              <motion.div
-                key={g.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+              <motion.div key={g.title} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                 whileHover={{ y: -4, boxShadow: `0 20px 60px ${g.color}18` }}
-                style={{ background: 'rgba(0,0,0,0.45)', border: `1px solid ${g.color}22`, borderRadius: 20, padding: '32px 26px', transition: 'box-shadow 0.3s', position: 'relative', overflow: 'hidden' }}
-              >
+                style={{ background: 'rgba(0,0,0,0.45)', border: `1px solid ${g.color}22`, borderRadius: 20, padding: '32px 26px', transition: 'box-shadow 0.3s', position: 'relative', overflow: 'hidden' }}>
                 {g.tag === 'Coming Soon' && (
                   <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: g.color, background: `${g.color}18`, border: `1px solid ${g.color}30`, borderRadius: 99, padding: '3px 10px' }}>Soon</div>
                 )}
@@ -365,7 +316,6 @@ export default function NoosphereProtocol() {
           </div>
         </Section>
 
-        {/* ── SOCIAL LAYER ── */}
         <Section dark>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <Pill>Mycelial Social Layer</Pill>
@@ -390,14 +340,11 @@ export default function NoosphereProtocol() {
           </div>
         </Section>
 
-        {/* ── TOKENOMICS ── */}
         <Section>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <Pill>Tokenomics</Pill>
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: 0 }}>64,000,000 NOO — the 64 hexagrams.</h2>
           </div>
-
-          {/* Visual bar */}
           <div style={{ marginBottom: 40 }}>
             <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', height: 18, marginBottom: 20 }}>
               {[
@@ -407,14 +354,8 @@ export default function NoosphereProtocol() {
                 { pct: 15, color: '#cc88ff', label: 'Treasury' },
                 { pct: 15, color: '#ff6b35', label: 'Team' },
               ].map(s => (
-                <motion.div
-                  key={s.label}
-                  initial={{ width: 0 }}
-                  whileInView={{ width: `${s.pct}%` }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ background: s.color, height: '100%' }}
-                />
+                <motion.div key={s.label} initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }} viewport={{ once: true }}
+                  transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} style={{ background: s.color, height: '100%' }} />
               ))}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
@@ -435,8 +376,6 @@ export default function NoosphereProtocol() {
               ))}
             </div>
           </div>
-
-          {/* Buy CTA */}
           <div style={{ background: 'linear-gradient(135deg, rgba(0,204,120,0.1), rgba(0,255,170,0.05))', border: '1px solid rgba(0,255,150,0.2)', borderRadius: 20, padding: '36px 32px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: 22, marginBottom: 8 }}>🌱 Buy NOO</div>
@@ -445,25 +384,16 @@ export default function NoosphereProtocol() {
                 <span style={{ fontSize: 13 }}>Balances are logged. Claim from contract once tradeable on-chain.</span>
               </p>
             </div>
-            <motion.a
-              href="https://noospace.xyz"
-              whileHover={{ scale: 1.05, boxShadow: '0 0 32px rgba(0,255,150,0.2)' }}
-              whileTap={{ scale: 0.97 }}
-              style={{ display: 'inline-block', background: 'linear-gradient(135deg, #00cc78, #00ffaa)', color: '#030a06', fontWeight: 800, fontSize: 16, padding: '14px 36px', borderRadius: 99, textDecoration: 'none' }}
-            >
+            <motion.a href="https://noospace.xyz" whileHover={{ scale: 1.05, boxShadow: '0 0 32px rgba(0,255,150,0.2)' }} whileTap={{ scale: 0.97 }}
+              style={{ display: 'inline-block', background: 'linear-gradient(135deg, #00cc78, #00ffaa)', color: '#030a06', fontWeight: 800, fontSize: 16, padding: '14px 36px', borderRadius: 99, textDecoration: 'none' }}>
               Connect Wallet & Buy NOO
             </motion.a>
           </div>
         </Section>
 
-        {/* ── VISION ── */}
         <Section dark style={{ textAlign: 'center' }}>
-          <motion.h2
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            style={{ fontSize: 'clamp(30px, 5vw, 56px)', fontWeight: 800, lineHeight: 1.15, marginBottom: 28, letterSpacing: '-0.02em' }}
-          >
+          <motion.h2 initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+            style={{ fontSize: 'clamp(30px, 5vw, 56px)', fontWeight: 800, lineHeight: 1.15, marginBottom: 28, letterSpacing: '-0.02em' }}>
             This is not a social network.<br />
             <span style={{ background: 'linear-gradient(135deg, #00cc78, #00ffaa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               This is consciousness infrastructure.
@@ -472,17 +402,12 @@ export default function NoosphereProtocol() {
           <p style={{ fontSize: 18, color: 'rgba(212,237,226,0.45)', maxWidth: 520, margin: '0 auto 52px', lineHeight: 1.7 }}>
             Finite attention. Ritualized expression. Collective intelligence at planetary scale.
           </p>
-          <motion.a
-            href="https://noospace.xyz"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(0,255,150,0.3)' }}
-            whileTap={{ scale: 0.97 }}
-            style={{ display: 'inline-block', background: 'linear-gradient(135deg, #00cc78, #00ffaa)', color: '#030a06', fontWeight: 800, fontSize: 18, padding: '18px 52px', borderRadius: 99, textDecoration: 'none', letterSpacing: '0.01em' }}
-          >
+          <motion.a href="https://noospace.xyz" whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(0,255,150,0.3)' }} whileTap={{ scale: 0.97 }}
+            style={{ display: 'inline-block', background: 'linear-gradient(135deg, #00cc78, #00ffaa)', color: '#030a06', fontWeight: 800, fontSize: 18, padding: '18px 52px', borderRadius: 99, textDecoration: 'none', letterSpacing: '0.01em' }}>
             Plant Your First Spore 🌱
           </motion.a>
         </Section>
 
-        {/* ── FOOTER ── */}
         <footer style={{ textAlign: 'center', padding: '48px 24px', color: 'rgba(212,237,226,0.2)', fontSize: 13, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <div style={{ marginBottom: 12, fontSize: 22 }}>🌌</div>
           © {new Date().getFullYear()} NooSpace — A mycelial protocol for the planetary mind.<br />
